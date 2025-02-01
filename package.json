@@ -18,7 +18,7 @@
     "dependencies": {
         "@hapi/hapi": "^21.3.12",
         "@hapi/inert": "^7.1.0",
-        "@prisma/client": "^6.1.0",
+        "@prisma/client": "^6.3.0",
         "dotenv": "^16.4.7",
         "hapi-alive": "^2.0.4",
         "hapi-pino": "^12.1.0",

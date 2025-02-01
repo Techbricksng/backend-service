@@ -48,7 +48,7 @@ const createUserHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit)
     const { fullname, email, password, roles } = request.payload as { fullname: string; email: string; password: string; roles: IUserRole };
 
     try {
-        const user = await prisma.users.create({
+        const user = await prisma.user.create({
             data: { fullname, email, password, role: roles?.[0] }, // Assigns only the first role
         });
         
@@ -64,7 +64,7 @@ const fetchUsersHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit)
     const { prisma } = request.server.app;
 
     try {
-        const users = await prisma.users.findMany();
+        const users = await prisma.user.findMany();
         return h.response({ version: '1.0.0', data: users }).code(200);
     } catch (error: any) {
         return h.response({ version: '1.0.0', error: error.message }).code(500);
@@ -77,7 +77,7 @@ const getUserByIdHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit
     const { id } = request.params as { id: string };
 
     try {
-        const user = await prisma.users.findUnique({ where: { id } });
+        const user = await prisma.user.findUnique({ where: { id } });
 
         if (!user) {
             return h.response({ version: '1.0.0', error: 'User not found' }).code(404);
@@ -96,7 +96,7 @@ const updateUserHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit)
     const { fullname, email, password, roles } = request.payload as { fullname?: string; email?: string; password?: string; roles?: IUserRole };
 
     try {
-        const updatedUser = await prisma.users.update({
+        const updatedUser = await prisma.user.update({
             where: { id },
             data: { fullname, email, password, ...(roles ? { role: roles[0] } : {}) },
         });
@@ -114,7 +114,7 @@ const deleteUserHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit)
     const { id } = request.params as { id: string };
 
     try {
-        await prisma.users.delete({ where: { id } });
+        await prisma.user.delete({ where: { id } });
 
         return h.response({ version: '1.0.0', message: 'User deleted successfully' }).code(200);
     } catch (error: any) {
@@ -129,7 +129,7 @@ const searchUsersHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit
     const { fullname, email, roles } = request.query as { fullname?: string; email?: string; roles?: IUserRole };
 
     try {
-        const users = await prisma.users.findMany({
+        const users = await prisma.user.findMany({
             where: {
                 OR: [
                     fullname ? { fullname: { contains: fullname, mode: 'insensitive' } } : {},
@@ -162,7 +162,7 @@ const listUsersHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit) 
         const pageSize = Number(limit) || 10;
         const skip = (pageNum - 1) * pageSize;
 
-        const users = await prisma.users.findMany({
+        const users = await prisma.user.findMany({
             where: {
                 AND: [
                     fullname ? { fullname: { contains: fullname, mode: 'insensitive' } } : {},
@@ -178,7 +178,7 @@ const listUsersHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit) 
             take: pageSize,
         });
 
-        const totalUsers = await prisma.users.count({
+        const totalUsers = await prisma.user.count({
             where: {
                 AND: [
                     fullname ? { fullname: { contains: fullname, mode: 'insensitive' } } : {},
