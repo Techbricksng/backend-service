@@ -21,10 +21,6 @@ const init = async () => {
     //custom plugins
     await server.register([prismaPlugin, UserRoutePlugin]);
 
-    console.log('Registered Plugins:', server.registrations);
-    console.log('Registered Routes:', server.table().map(route => route.path));
-
-
     server.route({
         method: 'GET',
         path: '/{param*}',

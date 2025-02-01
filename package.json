@@ -8,7 +8,9 @@
         "build": "tsc -p tsconfig.json",
         "start": "node build/server.js",
         "dev": "tsc -w & nodemon build/server.js",
-        "format": "prettier --write ."
+        "format": "prettier --write .",
+        "prisma-gen": "cd src/prisma && npx prisma generate",
+        "migrate": "cd src/prisma && npx prisma db push"
     },
     "keywords": [],
     "author": "",

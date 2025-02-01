@@ -1,6 +1,7 @@
 import Hapi from '@hapi/hapi';
 import * as dotenv from 'dotenv';
-import { PrismaClient, Role } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
+import {IUserRole} from "../types/user";
 
 dotenv.config();
 
@@ -15,8 +16,6 @@ declare module '@hapi/hapi' {
 const UserRoutePlugin: Hapi.Plugin<null> = {
     name: 'userRoute',
     register: async (server: Hapi.Server) => {
-        console.log('Registering user routes...'); 
-
         server.route([
             { 
                 method: 'POST', 
@@ -45,9 +44,8 @@ const UserRoutePlugin: Hapi.Plugin<null> = {
 
 // Create User Handler
 const createUserHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit) => {
-    console.log('Received Payload:', request.payload);
-    const { fullname, email, password, roles } = request.payload as { fullname: string; email: string; password: string; roles: Role[] };
-    const prisma = request.server.app.prisma as PrismaClient;
+    const { prisma } = request.server.app;
+    const { fullname, email, password, roles } = request.payload as { fullname: string; email: string; password: string; roles: IUserRole };
 
     try {
         const user = await prisma.users.create({
@@ -63,11 +61,10 @@ const createUserHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit)
 
 // Fetch All Users Handler
 const fetchUsersHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit) => {
-    const prisma = request.server.app.prisma as PrismaClient;
+    const { prisma } = request.server.app;
 
     try {
         const users = await prisma.users.findMany();
-
         return h.response({ version: '1.0.0', data: users }).code(200);
     } catch (error: any) {
         return h.response({ version: '1.0.0', error: error.message }).code(500);
@@ -76,8 +73,8 @@ const fetchUsersHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit)
 
 // Get User by ID Handler
 const getUserByIdHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit) => {
+    const { prisma } = request.server.app;
     const { id } = request.params as { id: string };
-    const prisma = request.server.app.prisma as PrismaClient;
 
     try {
         const user = await prisma.users.findUnique({ where: { id } });
@@ -94,9 +91,9 @@ const getUserByIdHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit
 
 // Update User Handler
 const updateUserHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit) => {
+    const { prisma } = request.server.app;
     const { id } = request.params as { id: string };
-    const { fullname, email, password, roles } = request.payload as { fullname?: string; email?: string; password?: string; roles?: Role[] };
-    const prisma = request.server.app.prisma as PrismaClient;
+    const { fullname, email, password, roles } = request.payload as { fullname?: string; email?: string; password?: string; roles?: IUserRole };
 
     try {
         const updatedUser = await prisma.users.update({
@@ -113,8 +110,8 @@ const updateUserHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit)
 
 // Delete User Handler
 const deleteUserHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit) => {
+    const { prisma } = request.server.app;
     const { id } = request.params as { id: string };
-    const prisma = request.server.app.prisma as PrismaClient;
 
     try {
         await prisma.users.delete({ where: { id } });
@@ -128,8 +125,8 @@ const deleteUserHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit)
 // Search Users Handler
 
 const searchUsersHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit) => {
-    const { fullname, email, roles } = request.query as { fullname?: string; email?: string; roles?: Role[] };
-    const prisma = request.server.app.prisma as PrismaClient;
+    const { prisma } = request.server.app;
+    const { fullname, email, roles } = request.query as { fullname?: string; email?: string; roles?: IUserRole };
 
     try {
         const users = await prisma.users.findMany({
@@ -149,11 +146,11 @@ const searchUsersHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit
 };
 
 const listUsersHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit) => {
-    const prisma = request.server.app.prisma as PrismaClient;
+    const { prisma } = request.server.app;
     const { fullname, email, role, sortBy, sortOrder, page, limit } = request.query as {
         fullname?: string;
         email?: string;
-        role?: Role;
+        role?: IUserRole;
         sortBy?: 'fullname' | 'email' | 'createdAt';
         sortOrder?: 'asc' | 'desc';
         page?: number;
