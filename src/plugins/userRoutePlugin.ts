@@ -1,68 +1,91 @@
 import Hapi from '@hapi/hapi';
 import * as dotenv from 'dotenv';
-import { PrismaClient } from '@prisma/client';
-import {IUserRole} from "../types/user";
+import { PrismaClient, Role } from '@prisma/client'; // Import Role from Prisma client
+import { userValidationSchema } from '../validations/userValidation';
+import { paginationValidationSchema } from '../validations/paginationValidation';
+
 
 dotenv.config();
 
-type TemplateFuncType = any;
-
-declare module '@hapi/hapi' {
-    interface ServerApplicationState {
-        templateName: TemplateFuncType;
-    }
-}
+const prisma = new PrismaClient();
 
 const UserRoutePlugin: Hapi.Plugin<null> = {
     name: 'userRoute',
     register: async (server: Hapi.Server) => {
-        server.route([
-            { 
-                method: 'POST', 
-                path: '/api/v1/users', 
-                handler: createUserHandler, 
-                options: { 
-                    auth: false,
-                    payload: { 
-                        parse: true, 
-                        allow: 'application/json'  
-                    }
-                } 
-            },
-            
-            { method: 'GET', path: '/api/v1/users', handler: fetchUsersHandler, options: { auth: false } },
-            { method: 'GET', path: '/api/v1/users/{id}', handler: getUserByIdHandler, options: { auth: false } },
-            { method: 'PUT', path: '/api/v1/users/{id}', handler: updateUserHandler, options: { auth: false } },
-            { method: 'DELETE', path: '/api/v1/users/{id}', handler: deleteUserHandler, options: { auth: false } },
-            { method: 'GET', path: '/api/v1/users/search', handler: searchUsersHandler, options: { auth: false } },
-            { method: 'GET', path: '/api/v1/users/list', handler: listUsersHandler, options: { auth: false } }
+        server.app.prisma = prisma;
 
+        server.route([
+            {
+                method: 'POST',
+                path: '/api/v1/users',
+                handler: createUserHandler,
+                options: {
+                    auth: false,
+                    validate: { payload: userValidationSchema },
+                },
+            },
+            {
+                method: 'GET',
+                path: '/api/v1/users',
+                handler: fetchUsersHandler,
+                options: { auth: false },
+            },
+            {
+                method: 'GET',
+                path: '/api/v1/users/{id}',
+                handler: getUserByIdHandler,
+                options: { auth: false },
+            },
+            {
+                method: 'PUT',
+                path: '/api/v1/users/{id}',
+                handler: updateUserHandler,
+                options: {
+                    auth: false,
+                    validate: { payload: userValidationSchema },
+                },
+            },
+            {
+                method: 'DELETE',
+                path: '/api/v1/users/{id}',
+                handler: deleteUserHandler,
+                options: { auth: false },
+            },
+            {
+                method: 'GET',
+                path: '/api/v1/users/search',
+                handler: searchUsersHandler,
+                options: { auth: false },
+            },
+            {
+                method: 'GET',
+                path: '/api/v1/users/list',
+                handler: listUsersHandler,
+                options: {
+                    auth: false,
+                    validate: { query: paginationValidationSchema },
+                },
+            },
         ]);
-        console.log('User routes registered successfully.');
     },
 };
 
-// Create User Handler
 const createUserHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit) => {
     const { prisma } = request.server.app;
-    const { fullname, email, password, roles } = request.payload as { fullname: string; email: string; password: string; roles: IUserRole };
-
+    const { firstName, lastName, email, photoUrl, role } = request.payload as { firstName: string; lastName: string; email: string; photoUrl: string; role: Role };
+    
     try {
         const user = await prisma.user.create({
-            data: { fullname, email, password, role: roles?.[0] }, // Assigns only the first role
+            data: { firstName, lastName, email, photoUrl, role }
         });
-        
-
         return h.response({ version: '1.0.0', data: user }).code(201);
     } catch (error: any) {
         return h.response({ version: '1.0.0', error: error.message }).code(500);
     }
 };
 
-// Fetch All Users Handler
 const fetchUsersHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit) => {
     const { prisma } = request.server.app;
-
     try {
         const users = await prisma.user.findMany();
         return h.response({ version: '1.0.0', data: users }).code(200);
@@ -71,74 +94,55 @@ const fetchUsersHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit)
     }
 };
 
-// Get User by ID Handler
 const getUserByIdHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit) => {
     const { prisma } = request.server.app;
-    const { id } = request.params as { id: string };
-
+    const { id } = request.params;
     try {
         const user = await prisma.user.findUnique({ where: { id } });
-
-        if (!user) {
-            return h.response({ version: '1.0.0', error: 'User not found' }).code(404);
-        }
-
+        if (!user) return h.response({ version: '1.0.0', error: 'User not found' }).code(404);
         return h.response({ version: '1.0.0', data: user }).code(200);
     } catch (error: any) {
         return h.response({ version: '1.0.0', error: error.message }).code(500);
     }
 };
 
-// Update User Handler
 const updateUserHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit) => {
     const { prisma } = request.server.app;
-    const { id } = request.params as { id: string };
-    const { fullname, email, password, roles } = request.payload as { fullname?: string; email?: string; password?: string; roles?: IUserRole };
-
+    const { id } = request.params;
+    const { firstName, lastName, email, photoUrl, role } = request.payload as { firstName?: string; lastName?: string; email?: string; photoUrl?: string; role?: Role };
     try {
-        const updatedUser = await prisma.user.update({
-            where: { id },
-            data: { fullname, email, password, ...(roles ? { role: roles[0] } : {}) },
-        });
-        
-
+        const updatedUser = await prisma.user.update({ where: { id }, data: { firstName, lastName, email, photoUrl, role } });
         return h.response({ version: '1.0.0', data: updatedUser }).code(200);
     } catch (error: any) {
         return h.response({ version: '1.0.0', error: error.message }).code(500);
     }
 };
 
-// Delete User Handler
 const deleteUserHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit) => {
     const { prisma } = request.server.app;
-    const { id } = request.params as { id: string };
-
+    const { id } = request.params;
     try {
         await prisma.user.delete({ where: { id } });
-
         return h.response({ version: '1.0.0', message: 'User deleted successfully' }).code(200);
     } catch (error: any) {
         return h.response({ version: '1.0.0', error: error.message }).code(500);
     }
 };
 
-// Search Users Handler
-
 const searchUsersHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit) => {
     const { prisma } = request.server.app;
-    const { fullname, email, roles } = request.query as { fullname?: string; email?: string; roles?: IUserRole };
-
+    const { firstName, lastName, email, role } = request.query as { firstName?: string; lastName?: string; email?: string; role?: Role };
     try {
         const users = await prisma.user.findMany({
             where: {
                 OR: [
-                    fullname ? { fullname: { contains: fullname, mode: 'insensitive' } } : {},
+                    firstName ? { firstName: { contains: firstName, mode: 'insensitive' } } : {},
+                    lastName ? { lastName: { contains: lastName, mode: 'insensitive' } } : {},
                     email ? { email: { contains: email, mode: 'insensitive' } } : {},
                 ],
-                ...(roles ? { role: { in: roles } } : {}),
-            },
+                ...(role ? { role } : {})
+            }
         });
-
         return h.response({ version: '1.0.0', data: users }).code(200);
     } catch (error: any) {
         return h.response({ version: '1.0.0', error: error.message }).code(500);
@@ -146,48 +150,46 @@ const searchUsersHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit
 };
 
 const listUsersHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit) => {
-    const { prisma } = request.server.app;
-    const { fullname, email, role, sortBy, sortOrder, page, limit } = request.query as {
-        fullname?: string;
+    const prisma = request.server.app.prisma as PrismaClient;
+    const { firstName, lastName, email, role, sortBy, sortOrder, page, limit } = request.query as {
+        firstName?: string;
+        lastName?: string;
         email?: string;
-        role?: IUserRole;
-        sortBy?: 'fullname' | 'email' | 'createdAt';
+        role?: Role;
+        sortBy?: 'firstName' | 'lastName' | 'email' | 'createdAt';
         sortOrder?: 'asc' | 'desc';
         page?: number;
         limit?: number;
     };
-
     try {
         const pageNum = Number(page) || 1;
         const pageSize = Number(limit) || 10;
         const skip = (pageNum - 1) * pageSize;
-
         const users = await prisma.user.findMany({
             where: {
                 AND: [
-                    fullname ? { fullname: { contains: fullname, mode: 'insensitive' } } : {},
+                    firstName ? { firstName: { contains: firstName, mode: 'insensitive' } } : {},
+                    lastName ? { lastName: { contains: lastName, mode: 'insensitive' } } : {},
                     email ? { email: { contains: email, mode: 'insensitive' } } : {},
                     role ? { role } : {},
                 ],
             },
             orderBy: sortBy
-            ? { [sortBy]: sortOrder === 'desc' ? 'desc' : 'asc' }
-            : { createdAt: 'desc' } as any, // Use 'as any' to bypass TypeScript error
-        
+                ? { [sortBy]: sortOrder === 'desc' ? 'desc' : 'asc' }
+                : { createdAt: 'desc' },
             skip,
             take: pageSize,
         });
-
         const totalUsers = await prisma.user.count({
             where: {
                 AND: [
-                    fullname ? { fullname: { contains: fullname, mode: 'insensitive' } } : {},
+                    firstName ? { firstName: { contains: firstName, mode: 'insensitive' } } : {},
+                    lastName ? { lastName: { contains: lastName, mode: 'insensitive' } } : {},
                     email ? { email: { contains: email, mode: 'insensitive' } } : {},
                     role ? { role } : {},
                 ],
             },
         });
-
         return h.response({
             version: '1.0.0',
             data: users,
@@ -202,6 +204,5 @@ const listUsersHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit) 
         return h.response({ version: '1.0.0', error: error.message }).code(500);
     }
 };
-
 
 export default UserRoutePlugin;
