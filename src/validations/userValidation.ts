@@ -6,5 +6,9 @@ export const userValidationSchema = Joi.object({
     lastName: Joi.string().required(),
     email: Joi.string().email().required(),
     photoUrl: Joi.string().uri().optional(),
-    role: Joi.string().valid(...Object.values(IUserRole)).required(),
+    role: Joi.string()
+        .valid(...Object.values(IUserRole))
+        .required(),
 });
+
+export const usersArraySchema = Joi.array().items(userValidationSchema).min(1);

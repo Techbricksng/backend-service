@@ -15,20 +15,22 @@ datasource db {
 
 model User {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  firstName String
-  lastName  String
+  firstName String?
+  lastName  String?
   email     String   @unique
-  role      Role
-  photoUrl  String
+  role      Role?
+  photoUrl  String?
+  otpSecret String
+  address   Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
-}
 
-@@map("users")
+  @@map("users")
+}
 
 enum Role {
   ADMIN
-  TENANTS
+  CUSTOMER
   ACCOUNT
   SALES
   MANAGER

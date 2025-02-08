@@ -1,14 +1,14 @@
-
 export interface IUser {
     id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    role: IUserRole;
-    photoUrl: string;
-    address: IUserAddress[];
-    createdAt: Date;
-    updatedAt: Date;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    role?: IUserRole;
+    photoUrl?: string;
+    address?: IUserAddress[];
+    otpSecret: string;
+    createdAt?: Date;
+    updatedAt?: Date;
 }
 
 export interface IUserAddress {
@@ -24,8 +24,8 @@ export interface IUserAddress {
 
 export enum IUserRole {
     ADMIN,
-    TENANTS,
+    CUSTOMER,
     ACCOUNT,
     SALES,
-    MANAGER
+    MANAGER,
 }

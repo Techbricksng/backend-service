@@ -138,5 +138,8 @@ pnpm-lock.yaml
 
 /build
 
-
-
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
