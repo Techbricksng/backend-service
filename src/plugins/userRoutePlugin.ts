@@ -6,7 +6,7 @@ import * as dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client'; // Import Role from Prisma client
 import { usersArraySchema, userValidationSchema } from '../validations/userValidation';
 import { paginationValidationSchema } from '../validations/paginationValidation';
-import { IUser, IUserRole } from '../types/user';
+import { IUser } from '../types/user';
 // @ts-ignore
 import { Role } from '@prisma/client';
 
@@ -238,7 +238,7 @@ const listUsersHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit) 
                     firstName ? { firstName: { contains: firstName, mode: 'insensitive' } } : {},
                     lastName ? { lastName: { contains: lastName, mode: 'insensitive' } } : {},
                     email ? { email: { contains: email, mode: 'insensitive' } } : {},
-                    role ? { role } : {},
+                    role ? { role: role.toUpperCase() as Role } : {},
                 ],
             },
             orderBy: sortBy ? { [sortBy]: sortOrder === 'desc' ? 'desc' : 'asc' } : { createdAt: 'desc' },
@@ -252,7 +252,7 @@ const listUsersHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit) 
                     firstName ? { firstName: { contains: firstName, mode: 'insensitive' } } : {},
                     lastName ? { lastName: { contains: lastName, mode: 'insensitive' } } : {},
                     email ? { email: { contains: email, mode: 'insensitive' } } : {},
-                    role ? { role } : {},
+                    role ? { role: role.toUpperCase() as Role } : {},
                 ],
             },
         });
@@ -289,7 +289,7 @@ const registerUsersHandler = async (request: Hapi.Request, h: Hapi.ResponseToolk
         });
         const secret = totp.secret.base32;
         await prisma.user.create({
-            data: { email: email, otpSecret: secret },
+            data: { email: email!, otpSecret: secret },
             select: {
                 // Explicitly select fields (excludes otpSecret)
                 id: true,
@@ -318,7 +318,7 @@ const verifyUsersHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit
     try {
         const userExists = await prisma.user.findMany({ where: { email } });
         if (userExists.length === 0) throw new Error('User does not exist!');
-        const user = userExists[0] as IUser;
+        const user = userExists[0] as unknown as IUser;
         if (!user.otpSecret) throw new Error('OTP Secret not found. Please enable two-factor authentication first.');
         const totp = new OTPAuth.TOTP({ secret: user['otpSecret'] }); //TODO: Bycrpt or any encryption
         const isValid = totp.validate({ token: otp, window: 1 });
