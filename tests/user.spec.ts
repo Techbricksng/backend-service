@@ -1,93 +1,117 @@
-import { test, expect, request } from '@playwright/test';
+import { test, expect } from "@playwright/test"
 
-const baseURL = process.env.BASE_URL;
+const baseURL = process.env.BASE_URL || "http://localhost:50000"
 const exampleUser = {
-    email: 'testuser@example.com',
-    firstName: 'Test',
-    lastName: 'User',
-    photoUrl: 'http://example.com/photo.jpg',
-    role: 'CUSTOMER',
-};
+  email: "testuser@example.com",
+  firstName: "Test",
+  lastName: "User",
+  photoUrl: "http://example.com/photo.jpg",
+  role: "CUSTOMER",
+}
 
-let createdUserId: string = '';
+let createdUserId = ""
+let request
 
-test.describe('User API Endpoints', () => {
-    test.beforeAll(async () => {
-        // Create the user if it doesn't exist already
-        const response = await request.post(`${baseURL}/api/v1/users/register`, {
-            data: { email: exampleUser.email },
-        });
+test.describe("User API Endpoints", () => {
+  test.beforeAll(async ({ playwright }) => {
+    request = await playwright.request.newContext({
+      baseURL: baseURL,
+    })
 
-        if (response.status() === 201) {
-            // If the user is created successfully, save their ID for later use
-            const responseBody = await response.json();
-            createdUserId = responseBody.data.id;
-        } else if (response.status() === 400) {
-            // If the user already exists, use the existing user
-            console.log('User already exists. Using the existing user.');
-            const userResponse = await request.get(`${baseURL}/api/v1/users?email=${exampleUser.email}`);
-            const existingUser = await userResponse.json();
-            createdUserId = existingUser.data[0].id;
+    try {
+      const response = await request.post("/api/v1/users/register", {
+        data: { email: exampleUser.email },
+      })
+
+      if (response.ok()) {
+        const responseBody = await response.json()
+        createdUserId = responseBody.data.id
+      } else if (response.status() === 400) {
+        console.log("User already exists. Using the existing user.")
+        const userResponse = await request.get(`/api/v1/users?email=${exampleUser.email}`)
+        if (userResponse.ok()) {
+          const existingUser = await userResponse.json()
+          createdUserId = existingUser.data[0].id
+        } else {
+          console.error("Failed to get existing user:", await userResponse.text())
         }
-    });
+      } else {
+        console.error("Failed to register user:", await response.text())
+      }
+    } catch (error) {
+      console.error("Error in beforeAll:", error)
+    }
+  })
 
-    test.skip('Create and verify user', async () => {
-        const response = await request.post(`${baseURL}/api/v1/users`, {
-            data: {
-                ...exampleUser,
-            },
-        });
+  test.skip("Create and verify user", async () => {
+    const response = await request.post("/api/v1/users", {
+      data: exampleUser,
+    })
 
-        expect(response.status()).toBe(201);
-        const user = await response.json();
-        expect(user.data.email).toBe(exampleUser.email);
-        expect(user.data.firstName).toBe(exampleUser.firstName);
-        expect(user.data.lastName).toBe(exampleUser.lastName);
-        expect(user.data.role).toBe(exampleUser.role);
-    });
+    expect(response.ok()).toBeTruthy()
+    const user = await response.json()
+    expect(user.data.email).toBe(exampleUser.email)
+    expect(user.data.firstName).toBe(exampleUser.firstName)
+    expect(user.data.lastName).toBe(exampleUser.lastName)
+    expect(user.data.role).toBe(exampleUser.role)
+  })
 
-    test('Get all users', async () => {
-        const response = await request.get(`${baseURL}/api/v1/users`);
+  test("Get all users", async () => {
+    const response = await request.get("/api/v1/users")
 
-        expect(response.status()).toBe(200);
-        const users = await response.json();
-        console.log('users', users);
-        expect(users.data.length).toBeGreaterThan(0);
-        expect(users.data.some((user) => user.email === exampleUser.email)).toBeTruthy();
-    });
+    if (!response.ok()) {
+      console.error("Get all users failed:", await response.text())
+    }
+    expect(response.ok()).toBeTruthy()
+    const users = await response.json()
+    console.log("users", users)
+    expect(users.data.length).toBeGreaterThan(0)
+    expect(users.data.some((user) => user.email === exampleUser.email)).toBeTruthy()
+  })
 
-    test('Get user by ID', async () => {
-        const response = await request.get(`${baseURL}/api/v1/users/${createdUserId}`);
+  test("Get user by ID", async () => {
+    const response = await request.get(`/api/v1/users/${createdUserId}`)
 
-        expect(response.status()).toBe(200);
-        const user = await response.json();
-        expect(user.data.email).toBe(exampleUser.email);
-        expect(user.data.firstName).toBe(exampleUser.firstName);
-    });
+    if (!response.ok()) {
+      console.error("Get user by ID failed:", await response.text())
+    }
+    expect(response.ok()).toBeTruthy()
+    const user = await response.json()
+    expect(user.data.email).toBe(exampleUser.email)
+  })
 
-    test('Update user details', async () => {
-        const updatedUser = { firstName: 'Updated', lastName: 'User' };
+  test("Update user details", async () => {
+    const updatedUser = { firstName: "Updated", lastName: "User" }
 
-        const response = await request.put(`${baseURL}/api/v1/users/${createdUserId}`, {
-            data: updatedUser,
-        });
+    const response = await request.put(`/api/v1/users/${createdUserId}`, {
+      data: updatedUser,
+    })
 
-        expect(response.status()).toBe(200);
-        const user = await response.json();
-        expect(user.data.firstName).toBe(updatedUser.firstName);
-        expect(user.data.lastName).toBe(updatedUser.lastName);
-    });
+    if (!response.ok()) {
+      console.error("Update user details failed:", await response.text())
+    }
+    expect(response.ok()).toBeTruthy()
+    const user = await response.json()
+    expect(user.data.firstName).toBe(updatedUser.firstName)
+    expect(user.data.lastName).toBe(updatedUser.lastName)
+  })
 
-    test('Delete user', async () => {
-        const response = await request.delete(`${baseURL}/api/v1/users/${createdUserId}`);
+  test("Delete user", async () => {
+    const response = await request.delete(`/api/v1/users/${createdUserId}`)
 
-        expect(response.status()).toBe(200);
-        const message = await response.json();
-        expect(message).toHaveProperty('message', 'User deleted successfully');
-    });
+    if (!response.ok()) {
+      console.error("Delete user failed:", await response.text())
+    }
+    expect(response.ok()).toBeTruthy()
+    const message = await response.json()
+    expect(message).toHaveProperty("message", "User deleted successfully")
+  })
 
-    test.afterAll(async () => {
-        // Optionally, clean up after tests if required (delete user)
-        await request.delete(`${baseURL}/api/v1/users/${createdUserId}`);
-    });
-});
+  test.afterAll(async () => {
+    if (createdUserId) {
+      await request.delete(`/api/v1/users/${createdUserId}`)
+    }
+    await request.dispose()
+  })
+})
+

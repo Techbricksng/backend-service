@@ -23,7 +23,7 @@ model User {
   otpSecret String
   address   Json?
   createdAt DateTime @default(now())
-  updatedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("users")
 }
@@ -34,4 +34,39 @@ enum Role {
   ACCOUNT
   SALES
   MANAGER
+  PROPERTY_OWNER
+  AGENT
+}
+
+model Property {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String?
+  price       Float
+  location    String
+  category    Category
+  owner       Owner
+  agent       Agent
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("properties")
+}
+
+// Embedded types inside Property
+type Category {
+  name        String
+  description String?
+}
+
+type Owner {
+  userId      String  // Reference to User.id
+  name        String
+  contactInfo Json?
+}
+
+type Agent {
+  userId      String  // Reference to User.id
+  name        String
+  contactInfo Json?
 }

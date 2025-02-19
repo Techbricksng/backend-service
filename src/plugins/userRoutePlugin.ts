@@ -6,7 +6,7 @@ import * as dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client'; // Import Role from Prisma client
 import { usersArraySchema, userValidationSchema } from '../validations/userValidation';
 import { paginationValidationSchema } from '../validations/paginationValidation';
-import { IUser } from '../types/user';
+import { IUser, IUserRole } from '../types/user';
 // @ts-ignore
 import { Role } from '@prisma/client';
 
@@ -20,6 +20,7 @@ const UserRoutePlugin: Hapi.Plugin<null> = {
         server.app.prisma = prisma;
 
         server.route([
+            
             {
                 method: 'POST',
                 path: '/api/v1/users',

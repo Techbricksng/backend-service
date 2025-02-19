@@ -28,4 +28,6 @@ export enum IUserRole {
     ACCOUNT,
     SALES,
     MANAGER,
+    PROPERTY_OWNER,
+    AGENT
 }

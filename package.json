@@ -6,6 +6,7 @@
     "scripts": {
         "build": "tsc -p tsconfig.json",
         "start": "node build/server.js",
+        "test": "start-server-and-test start http://localhost:50000 'playwright test'",
         "dev": "tsc -w & nodemon build/server.js",
         "format": "prettier --write .",
         "prisma-gen": "cd src/prisma && npx prisma generate",
