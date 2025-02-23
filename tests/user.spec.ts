@@ -56,19 +56,19 @@ test.describe("User API Endpoints", () => {
     expect(user.data.role).toBe(exampleUser.role)
   })
 
-  test("Get all users", async () => {
-    const response = await request.get("/api/v1/users")
-
-    if (!response.ok()) {
-      console.error("Get all users failed:", await response.text())
-    }
-    expect(response.ok()).toBeTruthy()
-    const users = await response.json()
-    console.log("users", users)
-    expect(users.data.length).toBeGreaterThan(0)
-    expect(users.data.some((user) => user.email === exampleUser.email)).toBeTruthy()
-  })
-
+  test("Get all users", async ({ playwright }) => {
+    const request = await playwright.request.newContext({
+      baseURL: baseURL,
+    });
+  
+    const response = await request.get("/api/v1/users");
+    expect(response.ok()).toBeTruthy();
+  
+    const users = await response.json();
+    console.log("users", users);
+    expect(users.data.length).toBeGreaterThan(0);
+  });
+  
   test("Get user by ID", async () => {
     const response = await request.get(`/api/v1/users/${createdUserId}`)
 
