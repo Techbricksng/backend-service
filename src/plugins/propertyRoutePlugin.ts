@@ -29,7 +29,18 @@ const PropertyRoutePlugin: Hapi.Plugin<null> = {
                 method: 'GET',
                 path: '/api/v1/properties',
                 handler: fetchPropertiesHandler,
-                options: { auth: false },
+                options: {
+                    auth: false,
+                    validate: {
+                        query: Joi.object({
+                            location: Joi.string().optional(),
+                            minPrice: Joi.number().optional(),
+                            maxPrice: Joi.number().optional(),
+                            sortBy: Joi.string().valid('price', 'createdAt').optional(),
+                            order: Joi.string().valid('asc', 'desc').optional(),
+                        }),
+                    },
+                },
             },
             {
                 method: 'GET',
@@ -71,24 +82,11 @@ const PropertyRoutePlugin: Hapi.Plugin<null> = {
                     },
                 },
             },
-            {
-                method: 'POST',
-                path: '/api/v1/properties/{id}/images',
-                handler: uploadPropertyImagesHandler,
-                options: {
-                    auth: false,
-                    payload: {
-                        output: 'stream',
-                        parse: true,
-                        multipart: true,
-                        maxBytes: 10 * 1024 * 1024, // Limit file size to 10MB
-                    },
-                },
-            },
         ]);
     },
 };
 
+// Create Property Endpoint
 export const createPropertyHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit) => {
     const { prisma } = request.server.app;
     const { name, description, price, location, category, owner, agent, buildingInfo } = request.payload as any;
@@ -100,14 +98,10 @@ export const createPropertyHandler = async (request: Hapi.Request, h: Hapi.Respo
                 description,
                 price,
                 location,
-                category, // Directly assign the category object
-                owner,    // Directly assign the owner object
-                agent,    // Directly assign the agent object
-                buildingInfo: { // Directly assign the buildingInfo object
-                    facilities: buildingInfo.facilities,
-                    numberOfFloors: buildingInfo.numberOfFloors,
-                    parkingSpaces: buildingInfo.parkingSpaces,
-                },
+                category,
+                owner,
+                agent,
+                buildingInfo,
             },
         });
 
@@ -117,6 +111,58 @@ export const createPropertyHandler = async (request: Hapi.Request, h: Hapi.Respo
     }
 };
 
+// Get Many Properties with Filter and Sort
+export const fetchPropertiesHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit) => {
+    const { prisma } = request.server.app;
+    const { location, minPrice, maxPrice, sortBy, order } = request.query;
+
+    try {
+        const filter: any = {};
+        if (location) filter.location = location;
+        if (minPrice) filter.price = { ...filter.price, gte: minPrice };
+        if (maxPrice) filter.price = { ...filter.price, lte: maxPrice };
+
+        const sort: any = {};
+        if (sortBy && order) sort[sortBy] = order;
+
+        const properties = await prisma.property.findMany({
+            where: filter,
+            orderBy: sort,
+            include: {
+                reviews: true,
+                images: true,
+            },
+        });
+
+        return h.response({ version: '1.0.0', data: properties }).code(200);
+    } catch (error: any) {
+        return h.response({ version: '1.0.0', error: error.message }).code(500);
+    }
+};
+
+// Get One Property by ID
+const getPropertyByIdHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit) => {
+    const { prisma } = request.server.app;
+    const { id } = request.params;
+
+    try {
+        const property = await prisma.property.findUnique({
+            where: { id },
+            include: {
+                reviews: true,
+                images: true,
+            },
+        });
+
+        if (!property) return h.response({ version: '1.0.0', error: 'Property not found' }).code(404);
+
+        return h.response({ version: '1.0.0', data: property }).code(200);
+    } catch (error: any) {
+        return h.response({ version: '1.0.0', error: error.message }).code(500);
+    }
+};
+
+// Update Property Endpoint
 const updatePropertyHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit) => {
     const { prisma } = request.server.app;
     const { id } = request.params;
@@ -133,14 +179,10 @@ const updatePropertyHandler = async (request: Hapi.Request, h: Hapi.ResponseTool
                 description,
                 price,
                 location,
-                category, // Directly assign the category object
-                owner,    // Directly assign the owner object
-                agent,    // Directly assign the agent object
-                buildingInfo: { // Directly assign the buildingInfo object
-                    facilities: buildingInfo.facilities,
-                    numberOfFloors: buildingInfo.numberOfFloors,
-                    parkingSpaces: buildingInfo.parkingSpaces,
-                },
+                category,
+                owner,
+                agent,
+                buildingInfo,
             },
         });
 
@@ -150,45 +192,7 @@ const updatePropertyHandler = async (request: Hapi.Request, h: Hapi.ResponseTool
     }
 };
 
-export const fetchPropertiesHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit) => {
-    const { prisma } = request.server.app;
-    try {
-        const properties = await prisma.property.findMany({
-            include: {
-                // Only include related models (e.g., `reviews` and `images`)
-                reviews: true,
-                images: true,
-            },
-        });
-
-        return h.response({ version: '1.0.0', data: properties }).code(200);
-    } catch (error: any) {
-        return h.response({ version: '1.0.0', error: error.message }).code(500);
-    }
-};
-
-const getPropertyByIdHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit) => {
-    const { prisma } = request.server.app;
-    const { id } = request.params;
-
-    try {
-        const property = await prisma.property.findUnique({
-            where: { id },
-            include: {
-                // Only include related models (e.g., `reviews` and `images`)
-                reviews: true,
-                images: true,
-            },
-        });
-
-        if (!property) return h.response({ version: '1.0.0', error: 'Property not found' }).code(404);
-
-        return h.response({ version: '1.0.0', data: property }).code(200);
-    } catch (error: any) {
-        return h.response({ version: '1.0.0', error: error.message }).code(500);
-    }
-};
-
+// Delete Property Endpoint
 const deletePropertyHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit) => {
     const { prisma } = request.server.app;
     const { id } = request.params;
@@ -200,33 +204,6 @@ const deletePropertyHandler = async (request: Hapi.Request, h: Hapi.ResponseTool
         await prisma.property.delete({ where: { id } });
 
         return h.response({ version: '1.0.0', message: 'Property deleted successfully' }).code(200);
-    } catch (error: any) {
-        return h.response({ version: '1.0.0', error: error.message }).code(500);
-    }
-};
-
-const uploadPropertyImagesHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit) => {
-    const { prisma } = request.server.app;
-    const { id } = request.params;
-    const { payload } = request;
-
-    try {
-        if (!payload) return h.response({ error: 'No files uploaded' }).code(400);
-
-        const images = await Promise.all(
-            (Array.isArray(payload) ? payload : [payload]).map(async (file: any) => {
-                const image = await prisma.image.create({ // Use `image` instead of `images`
-                    data: {
-                        url: file.path, // Replace with actual file storage URL
-                        isDefault: false,
-                        property: { connect: { id } },
-                    },
-                });
-                return image;
-            })
-        );
-
-        return h.response({ version: '1.0.0', data: images }).code(200);
     } catch (error: any) {
         return h.response({ version: '1.0.0', error: error.message }).code(500);
     }

@@ -39,7 +39,7 @@ enum Role {
 }
 
 model Property {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  id          String        @id @default(auto()) @map("_id") @db.ObjectId
   name        String
   description String?
   price       Price
@@ -48,24 +48,18 @@ model Property {
   owner       Owner
   agent       Agent
   buildingInfo BuildingInfo
-  reviews     Review[]  //  Now references the `Review` model (not an embedded type)
-  imageIds    String[]  // Array of image IDs (references to the Image collection)
-  images      Image[]   @relation("PropertyImages") // Added this relation field
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  reviews     Review[]      // References the `Review` model
+  images      Image[]       // Array of Image type (no separate model)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
   @@map("properties")
 }
 
-
-model Image {
+type Image {
   id         String   @id @default(auto()) @map("_id") @db.ObjectId
   url        String   // URL of the image (stored in cloud storage)
   isDefault  Boolean  @default(false) // Indicates if this is the main photo
-  property   Property @relation("PropertyImages", fields: [propertyId], references: [id])
-  propertyId String   // Reference to the Property this image belongs to
-
-  @@map("images")
 }
 
 type Category {
@@ -86,8 +80,6 @@ type Agent {
   contactInfo Json?
 }
 
-
-// New types for Price, BuildingInfo, and Review
 type Price {
   houseRent     Float // Base rent for the property
   electricityFee Float // Electricity fee

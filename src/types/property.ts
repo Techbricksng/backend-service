@@ -1,9 +1,7 @@
-
-
 export interface IProperty {
     id: string;
     name: string;
-    description: string | null; // Change to `string | null`
+    description: string | null;
     price: IPrice;
     location: string;
     category: ICategory;
@@ -11,8 +9,7 @@ export interface IProperty {
     agent: IAgent;
     buildingInfo: IBuildingInfo;
     reviews: IReview[];
-    images: IImage[];
-    imageIds: string[]; // Ensure this field is included
+    images: IImage[]; // Array of Image type (no separate model)
     createdAt: Date;
     updatedAt: Date;
 }
@@ -21,8 +18,6 @@ export interface IImage {
     id: string;
     url: string;
     isDefault: boolean;
-    propertyId: string; // Reference to the Property this image belongs to
-    property?: IProperty; // Optional, to reflect the bidirectional relationship
 }
 
 export interface ICategory {
