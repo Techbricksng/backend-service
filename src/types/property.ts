@@ -8,8 +8,8 @@ export interface IProperty {
     owner: IOwner;
     agent: IAgent;
     buildingInfo: IBuildingInfo;
-    reviews: IReview[];
-    images: IImage[]; // Array of Image type (no separate model)
+    reviews: IReview[]; // Default empty array
+    images: IImage[]; // Default empty array
     createdAt: Date;
     updatedAt: Date;
 }
@@ -55,7 +55,7 @@ export interface IReview {
     id: string;
     userId: string;
     rating: number;
-    comment?: string;
+    comment?: string | null;
     createdAt: Date;
     updatedAt: Date;
 }

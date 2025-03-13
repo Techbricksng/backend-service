@@ -41,6 +41,39 @@ describe('Property CRUD Operations', () => {
                     parkingSpaces: 10,
                 },
             },
+            server: {
+                app: {
+                    prisma: {
+                        property: {
+                            create: jest.fn().mockResolvedValue({
+                                id: '1',
+                                name: 'Test Property',
+                                description: 'Test Description',
+                                price: {
+                                    houseRent: 1000,
+                                    electricityFee: 100,
+                                    damageFee: 50,
+                                    otherFee: 20,
+                                    total: 1170,
+                                },
+                                location: 'Test Location',
+                                category: { name: 'Test Category', description: 'Test Category Description' },
+                                owner: { userId: '123', name: 'Test Owner' },
+                                agent: { userId: '456', name: 'Test Agent' },
+                                buildingInfo: {
+                                    facilities: ['Pool', 'Gym'],
+                                    numberOfFloors: 5,
+                                    parkingSpaces: 10,
+                                },
+                                reviews: [],
+                                images: [],
+                                createdAt: new Date(),
+                                updatedAt: new Date(),
+                            }),
+                        },
+                    },
+                },
+            },
         };
 
         const mockResponse = {
@@ -51,7 +84,7 @@ describe('Property CRUD Operations', () => {
 
         const result = await createPropertyHandler(mockRequest as any, mockResponse);
         expect(result.statusCode).toBe(201);
-        expect(result.data.name).toBe('Test Property'); // Access data directly from the result
+        expect((result as any).data.name).toBe('Test Property'); // Access data directly from the result
     });
 
     it('should fetch properties with filters', async () => {
@@ -63,6 +96,41 @@ describe('Property CRUD Operations', () => {
                 sortBy: 'price',
                 order: 'asc',
             },
+            server: {
+                app: {
+                    prisma: {
+                        property: {
+                            findMany: jest.fn().mockResolvedValue([
+                                {
+                                    id: '1',
+                                    name: 'Test Property',
+                                    description: 'Test Description',
+                                    price: {
+                                        houseRent: 1000,
+                                        electricityFee: 100,
+                                        damageFee: 50,
+                                        otherFee: 20,
+                                        total: 1170,
+                                    },
+                                    location: 'Test Location',
+                                    category: { name: 'Test Category', description: 'Test Category Description' },
+                                    owner: { userId: '123', name: 'Test Owner' },
+                                    agent: { userId: '456', name: 'Test Agent' },
+                                    buildingInfo: {
+                                        facilities: ['Pool', 'Gym'],
+                                        numberOfFloors: 5,
+                                        parkingSpaces: 10,
+                                    },
+                                    reviews: [],
+                                    images: [],
+                                    createdAt: new Date(),
+                                    updatedAt: new Date(),
+                                },
+                            ]),
+                        },
+                    },
+                },
+            },
         };
 
         const mockResponse = {
@@ -73,6 +141,6 @@ describe('Property CRUD Operations', () => {
 
         const result = await fetchPropertiesHandler(mockRequest as any, mockResponse);
         expect(result.statusCode).toBe(200);
-        expect(Array.isArray(result.data)).toBe(true); // Access data directly from the result
+        expect(Array.isArray((result as any).data)).toBe(true); // Access data directly from the result
     });
 });

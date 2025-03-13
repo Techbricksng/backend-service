@@ -48,8 +48,8 @@ model Property {
   owner       Owner
   agent       Agent
   buildingInfo BuildingInfo
-  reviews     Review[]      // References the `Review` model
-  images      Image[]       // Array of Image type (no separate model)
+  reviews     Review[]      @default([]) // Default empty array
+  images      Image[]       @default([]) // Default empty array
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
