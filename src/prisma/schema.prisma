@@ -23,7 +23,7 @@ model User {
   otpSecret String
   address   Json?
   createdAt DateTime @default(now())
-  updatedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("users")
 }
@@ -34,4 +34,76 @@ enum Role {
   ACCOUNT
   SALES
   MANAGER
+  PROPERTY_OWNER
+  AGENT
+}
+
+model Property {
+  id          String        @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String?
+  price       Price
+  location    String
+  category    Category
+  owner       Owner
+  agent       Agent
+  buildingInfo BuildingInfo
+  reviews     Review[]      @default([]) // Default empty array
+  images      Image[]       @default([]) // Default empty array
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@map("properties")
+}
+
+type Image {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  url        String   // URL of the image (stored in cloud storage)
+  isDefault  Boolean  @default(false) // Indicates if this is the main photo
+}
+
+type Category {
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  name        String  @unique
+  description String?
+}
+
+type Owner {
+  userId      String  @id @map("_id") @db.ObjectId
+  name        String
+  contactInfo Json?
+}
+
+type Agent {
+  userId      String  @id @map("_id") @db.ObjectId
+  name        String
+  contactInfo Json?
+}
+
+type Price {
+  houseRent     Float // Base rent for the property
+  electricityFee Float // Electricity fee
+  damageFee     Float // Damage fee
+  otherFee      Float // Other miscellaneous fees
+  total         Float // Total price (calculated as the sum of all fees)
+}
+
+type BuildingInfo {
+  facilities   String[] // Array of facilities/amenities (e.g., "Swimming Pool", "Gym")
+  numberOfFloors Int    // Number of floors in the building
+  parkingSpaces Int     // Number of parking spaces
+}
+
+model Review {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   // Reference to User.id (who wrote the review)
+  rating      Int      // Rating out of 5
+  comment     String?  // Optional comment
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  property   Property @relation(fields: [propertyId], references: [id])
+  propertyId String   // Reference to Property.id
+
+  @@map("reviews")
 }
