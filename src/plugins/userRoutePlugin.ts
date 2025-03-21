@@ -1,13 +1,14 @@
+
 import Hapi from '@hapi/hapi';
 import Joi from 'joi';
+import jwt from 'jsonwebtoken';
 import OTPAuth from 'otpauth';
 import QRCode from 'qrcode';
 import * as dotenv from 'dotenv';
-import { PrismaClient } from '@prisma/client'; // Import Role from Prisma client
+import { PrismaClient } from '@prisma/client';
 import { usersArraySchema, userValidationSchema } from '../validations/userValidation';
 import { paginationValidationSchema } from '../validations/paginationValidation';
 import { IUser, IUserRole } from '../types/user';
-// @ts-ignore
 import { Role } from '@prisma/client';
 
 dotenv.config();
@@ -20,34 +21,33 @@ const UserRoutePlugin: Hapi.Plugin<null> = {
         server.app.prisma = prisma;
 
         server.route([
-            
             {
                 method: 'POST',
                 path: '/api/v1/users',
                 handler: createUserHandler,
                 options: {
-                    auth: false,
-                    /* validate: { payload: userValidationSchema },*/
+                    auth: 'jwt', // Protect this endpoint with JWT
+                    validate: { payload: userValidationSchema },
                 },
             },
             {
                 method: 'GET',
                 path: '/api/v1/users',
                 handler: fetchUsersHandler,
-                options: { auth: false },
+                options: { auth: 'jwt' }, // Protect this endpoint with JWT
             },
             {
                 method: 'GET',
                 path: '/api/v1/users/{id}',
                 handler: getUserByIdHandler,
-                options: { auth: false, validate: { params: { id: Joi.string() } } },
+                options: { auth: 'jwt', validate: { params: { id: Joi.string() } } },
             },
             {
                 method: 'PUT',
                 path: '/api/v1/users/{id}',
                 handler: updateUserHandler,
                 options: {
-                    auth: false,
+                    auth: 'jwt',
                     validate: { payload: userValidationSchema, params: { id: Joi.string() } },
                 },
             },
@@ -55,14 +55,14 @@ const UserRoutePlugin: Hapi.Plugin<null> = {
                 method: 'DELETE',
                 path: '/api/v1/users/{id}',
                 handler: deleteUserHandler,
-                options: { auth: false, validate: { params: { id: Joi.string() } } },
+                options: { auth: 'jwt', validate: { params: { id: Joi.string() } } },
             },
             {
                 method: 'POST',
                 path: '/api/v1/users/list',
                 handler: listUsersHandler,
                 options: {
-                    auth: false,
+                    auth: 'jwt',
                     validate: { query: paginationValidationSchema, payload: usersArraySchema },
                 },
             },
@@ -70,13 +70,13 @@ const UserRoutePlugin: Hapi.Plugin<null> = {
                 method: 'POST',
                 path: '/api/v1/users/register',
                 handler: registerUsersHandler,
-                options: { auth: false },
+                options: { auth: false }, // No authentication required for registration
             },
             {
                 method: 'POST',
                 path: '/api/v1/users/verify',
                 handler: verifyUsersHandler,
-                options: { auth: false },
+                options: { auth: false }, // No authentication required for verification
             },
         ]);
     },
@@ -274,13 +274,21 @@ const listUsersHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit) 
     }
 };
 
+// Generate JWT Token
+const generateToken = (payload: { id: string; email: string }) => {
+    return jwt.sign(payload, process.env.JWT_SECRET!, {
+        expiresIn: '1h',
+    });
+};
+
+// Register User and Generate JWT Token
 const registerUsersHandler = async (request: Hapi.Request, h: Hapi.ResponseToolkit) => {
     const { prisma } = request.server.app;
     const { email } = request.payload as { email?: string };
     try {
         const userExists = await prisma.user.findMany({ where: { email } });
         if (userExists.length > 0) throw new Error('User already exists');
-        // Generate TOTP secret
+
         const totp = new OTPAuth.TOTP({
             issuer: 'HouseBankApp',
             label: email,
@@ -289,25 +297,14 @@ const registerUsersHandler = async (request: Hapi.Request, h: Hapi.ResponseToolk
             period: 30,
         });
         const secret = totp.secret.base32;
-        await prisma.user.create({
+
+        const user = await prisma.user.create({
             data: { email: email!, otpSecret: secret },
-            select: {
-                // Explicitly select fields (excludes otpSecret)
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true,
-                role: true,
-                photoUrl: true,
-                address: true,
-                createdAt: true,
-                updatedAt: true,
-            },
-        }); //TODO: Encrypt secret may be we use Bycrypt here
-        // Generate QR Code
-        const otpAuthURL = totp.toString();
-        const qrCode = QRCode.toDataURL(otpAuthURL);
-        return h.response({ version: '1.0.0', data: qrCode }).code(201);
+            select: { id: true, email: true },
+        });
+
+        const token = generateToken({ id: user.id, email: user.email });
+        return h.response({ version: '1.0.0', token }).code(201);
     } catch (error: any) {
         return h.response({ version: '1.0.0', error: error.message }).code(500);
     }

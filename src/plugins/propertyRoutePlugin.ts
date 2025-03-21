@@ -3,6 +3,7 @@ import Joi from 'joi';
 import * as dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 import { propertyValidationSchema } from '../validations/propertyValidation';
+import jwt from 'jsonwebtoken';
 
 dotenv.config();
 
@@ -19,68 +20,36 @@ const PropertyRoutePlugin: Hapi.Plugin<null> = {
                 path: '/api/v1/properties',
                 handler: createPropertyHandler,
                 options: {
-                    auth: false,
-                    validate: {
-                        payload: propertyValidationSchema,
-                    },
+                    auth: 'jwt', // Protect this endpoint with JWT
+                    validate: { payload: propertyValidationSchema },
                 },
             },
             {
                 method: 'GET',
                 path: '/api/v1/properties',
                 handler: fetchPropertiesHandler,
-                options: {
-                    auth: false,
-                    validate: {
-                        query: Joi.object({
-                            location: Joi.string().optional(),
-                            minPrice: Joi.number().optional(),
-                            maxPrice: Joi.number().optional(),
-                            sortBy: Joi.string().valid('price', 'createdAt').optional(),
-                            order: Joi.string().valid('asc', 'desc').optional(),
-                        }),
-                    },
-                },
+                options: { auth: 'jwt' }, // Protect this endpoint with JWT
             },
             {
                 method: 'GET',
                 path: '/api/v1/properties/{id}',
                 handler: getPropertyByIdHandler,
-                options: {
-                    auth: false,
-                    validate: {
-                        params: Joi.object({
-                            id: Joi.string().required(),
-                        }),
-                    },
-                },
+                options: { auth: 'jwt', validate: { params: { id: Joi.string() } } },
             },
             {
                 method: 'PUT',
                 path: '/api/v1/properties/{id}',
                 handler: updatePropertyHandler,
                 options: {
-                    auth: false,
-                    validate: {
-                        params: Joi.object({
-                            id: Joi.string().required(),
-                        }),
-                        payload: propertyValidationSchema,
-                    },
+                    auth: 'jwt',
+                    validate: { params: { id: Joi.string() }, payload: propertyValidationSchema },
                 },
             },
             {
                 method: 'DELETE',
                 path: '/api/v1/properties/{id}',
                 handler: deletePropertyHandler,
-                options: {
-                    auth: false,
-                    validate: {
-                        params: Joi.object({
-                            id: Joi.string().required(),
-                        }),
-                    },
-                },
+                options: { auth: 'jwt', validate: { params: { id: Joi.string() } } },
             },
         ]);
     },
